@@ -4,7 +4,6 @@ import argparse
 import asyncio
 import json
 import logging
-from pathlib import Path
 
 from .config import load_config
 from .monitor import run_forever, run_once
@@ -34,11 +33,11 @@ def cmd_test_dingtalk(args) -> None:
     config = load_config(args.config)
     item = {
         "item_id": "1055857694776",
-        "title": "自用23年准信5000公里实表赛科龙ra2，250排量车子无事故",
-        "price": 5000,
+        "title": "自用索尼 A6400，成色好，配件齐全",
+        "price": 3500,
         "location": "广东",
         "seller_name": "广东个人玩家",
-        "keyword": "摩托车",
+        "keyword": "相机",
         "reason": "这是一条测试通知，用于验证推送渠道是否可用；正文不再展示长链接，链接只放到按钮里。",
         "image_url": "https://img.alicdn.com/imgextra/i4/O1CN01XJcqC91wGp5h56i7J_!!6000000006354-2-tps-800-800.png",
         "item_link": "https://www.goofish.com/item?id=1055857694776",
@@ -61,13 +60,13 @@ def cmd_run(args) -> None:
 
 def main() -> None:
     setup_logging()
-    parser = argparse.ArgumentParser(description="闲鱼摩托车监控助手")
+    parser = argparse.ArgumentParser(description="闲鱼 AI 智能监控助手")
     parser.add_argument("--config", default="config.yaml", help="配置文件路径")
 
     sub = parser.add_subparsers(dest="command", required=True)
 
     p_search = sub.add_parser("search", help="搜索商品并打印 JSON")
-    p_search.add_argument("--keyword", default="摩托车")
+    p_search.add_argument("--keyword", default="相机")
     p_search.add_argument("--limit", type=int, default=5)
     p_search.set_defaults(func=cmd_search)
 
