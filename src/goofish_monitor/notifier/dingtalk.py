@@ -33,13 +33,13 @@ def send_action_card(webhook: str, secret: str, item: dict[str, Any], reason: st
     image_url = str(item.get("image_url") or "")
     item_link = str(item.get("item_link") or "https://www.goofish.com/")
     chat_link = str(item.get("chat_link") or item_link)
-    keyword = str(item.get("keyword") or "摩托车")
+    keyword = str(item.get("keyword") or "闲鱼")
     reason = reason or str(item.get("reason") or "符合监控条件")
 
     image_block = f"![商品图片]({image_url})\n\n" if image_url.startswith("http") else ""
     text = (
         f"{image_block}"
-        f"### 闲鱼摩托车监控：🚨 新推荐！\n\n"
+        f"### 闲鱼 AI 智能监控：🚨 新推荐！\n\n"
         f"类型：新发布  关键词：{keyword}\n\n"
         f"价格：{price_text}  地区：{location}\n\n"
         f"标题：{title}\n\n"
@@ -50,7 +50,7 @@ def send_action_card(webhook: str, secret: str, item: dict[str, Any], reason: st
     payload = {
         "msgtype": "actionCard",
         "actionCard": {
-            "title": f"闲鱼摩托车监控：🚨 新推荐！{title}",
+            "title": f"闲鱼 AI 智能监控：🚨 新推荐！{title}",
             "text": text,
             "btnOrientation": "1",
             "btns": [
@@ -74,8 +74,8 @@ def send_markdown_fallback(webhook: str, secret: str, item: dict[str, Any], reas
     payload = {
         "msgtype": "markdown",
         "markdown": {
-            "title": f"闲鱼摩托车监控：{title}",
-            "text": f"### 闲鱼摩托车监控：{title}\n\n价格：{price}\n\n推荐理由：{reason}\n\n[立即查看]({item_link})",
+            "title": f"闲鱼 AI 智能监控：{title}",
+            "text": f"### 闲鱼 AI 智能监控：{title}\n\n价格：{price}\n\n推荐理由：{reason}\n\n[立即查看]({item_link})",
         },
         "at": {"isAtAll": False},
     }
