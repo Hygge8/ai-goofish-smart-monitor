@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import logging
 
+from .account import AccountStore
 from .ai import analyze_item
 from .config import AppConfig
 from .db import SeenStore
@@ -15,10 +16,19 @@ logger = logging.getLogger(__name__)
 
 async def run_once(config: AppConfig) -> int:
     store = SeenStore(config.storage_db)
-    scraper = GoofishScraper(headless=config.headless, user_data_dir=config.user_data_dir)
+    accounts = AccountStore(config.account_dir)
     sent_count = 0
 
     for task in config.tasks:
+        account_state = accounts.load(task.account) if task.account else None
+        if task.account and not account_state:
+            logger.warning("任务 %s 配置了账号 %s，但未找到登录态文件", task.name, task.account)
+
+        scraper = GoofishScraper(
+            headless=config.headless,
+            user_data_dir=f"{config.user_data_dir}/{task.account or 'default'}",
+            account_state=account_state,
+        )
         logger.info("开始搜索任务：%s / %s", task.name, task.keyword)
         items = await scraper.search(task.keyword, config.max_items_per_keyword)
         logger.info("任务 %s 抓到 %s 条商品", task.name, len(items))
@@ -34,6 +44,7 @@ async def run_once(config: AppConfig) -> int:
             item_dict["score"] = score
             item_dict["total_score"] = score.get("total_score")
             item_dict["price_drop"] = price_drop.to_dict()
+            item_dict["account"] = task.account
 
             already_seen = store.has_seen(item.item_id)
             store.mark_seen(item_dict)
