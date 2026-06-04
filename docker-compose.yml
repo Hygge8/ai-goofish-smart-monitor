@@ -1,7 +1,7 @@
 services:
   monitor:
     build: .
-    container_name: goofish-moto-monitor
+    container_name: ai-goofish-smart-monitor
     restart: unless-stopped
     env_file:
       - .env
@@ -14,7 +14,7 @@ services:
 
   web:
     build: .
-    container_name: goofish-moto-monitor-web
+    container_name: ai-goofish-smart-monitor-web
     restart: unless-stopped
     env_file:
       - .env
