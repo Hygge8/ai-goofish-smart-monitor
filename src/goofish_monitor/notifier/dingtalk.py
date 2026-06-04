@@ -34,6 +34,12 @@ def _score_line(item: dict[str, Any]) -> str:
     )
 
 
+def _alert_title(item: dict[str, Any]) -> str:
+    if item.get("alert_type") == "price_drop":
+        return "💰 降价提醒！"
+    return "🚨 新推荐！"
+
+
 def send_action_card(webhook: str, secret: str, item: dict[str, Any], reason: str = "") -> dict[str, Any]:
     if not webhook:
         raise ValueError("未配置 DINGTALK_WEBHOOK")
@@ -49,15 +55,24 @@ def send_action_card(webhook: str, secret: str, item: dict[str, Any], reason: st
     keyword = str(item.get("keyword") or "闲鱼")
     reason = reason or str(item.get("reason") or "符合监控条件")
     risk_tags = ((item.get("score") or {}).get("risk_tags") or [])
+    alert_title = _alert_title(item)
+
+    price_drop = item.get("price_drop") or {}
+    drop_block = ""
+    if item.get("alert_type") == "price_drop" and price_drop:
+        drop_block = (
+            f"\n\n降价信息：原价 ￥{price_drop.get('previous_price')} → 现价 ￥{price_drop.get('current_price')}"
+            f"，下降 ￥{price_drop.get('drop_amount')}，降幅 {float(price_drop.get('drop_ratio') or 0):.1%}"
+        )
 
     image_block = f"![商品图片]({image_url})\n\n" if image_url.startswith("http") else ""
     score_block = _score_line(item)
     risk_block = f"\n\n风险标签：{('、'.join(risk_tags))}" if risk_tags else ""
     text = (
         f"{image_block}"
-        f"### 闲鱼 AI 智能监控：🚨 新推荐！\n\n"
+        f"### 闲鱼 AI 智能监控：{alert_title}\n\n"
         f"类型：新发布  关键词：{keyword}\n\n"
-        f"价格：{price_text}  地区：{location}\n\n"
+        f"价格：{price_text}  地区：{location}{drop_block}\n\n"
         f"标题：{title}\n\n"
         f"{score_block}\n\n"
         f"推荐理由：{reason}{risk_block}\n\n"
@@ -67,7 +82,7 @@ def send_action_card(webhook: str, secret: str, item: dict[str, Any], reason: st
     payload = {
         "msgtype": "actionCard",
         "actionCard": {
-            "title": f"闲鱼 AI 智能监控：🚨 新推荐！{title}",
+            "title": f"闲鱼 AI 智能监控：{alert_title}{title}",
             "text": text,
             "btnOrientation": "1",
             "btns": [
@@ -89,11 +104,12 @@ def send_markdown_fallback(webhook: str, secret: str, item: dict[str, Any], reas
     price = item.get("price", "未知")
     reason = reason or str(item.get("reason") or "符合监控条件")
     score_block = _score_line(item)
+    alert_title = _alert_title(item)
     payload = {
         "msgtype": "markdown",
         "markdown": {
-            "title": f"闲鱼 AI 智能监控：{title}",
-            "text": f"### 闲鱼 AI 智能监控：{title}\n\n价格：{price}\n\n{score_block}\n\n推荐理由：{reason}\n\n[立即查看]({item_link})",
+            "title": f"闲鱼 AI 智能监控：{alert_title}{title}",
+            "text": f"### 闲鱼 AI 智能监控：{alert_title}{title}\n\n价格：{price}\n\n{score_block}\n\n推荐理由：{reason}\n\n[立即查看]({item_link})",
         },
         "at": {"isAtAll": False},
     }
