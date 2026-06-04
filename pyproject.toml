@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "goofish-moto-monitor"
+version = "0.1.0"
+description = "闲鱼摩托车商品监控与钉钉图文卡片通知"
+requires-python = ">=3.10"
+dependencies = [
+  "playwright==1.49.1",
+  "requests==2.32.3",
+  "PyYAML==6.0.2",
+  "python-dotenv==1.0.1",
+  "fastapi==0.115.6",
+  "uvicorn==0.32.1",
+  "pydantic==2.10.3",
+]
+
+[project.scripts]
+goofish-monitor = "goofish_monitor.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
