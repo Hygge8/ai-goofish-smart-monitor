@@ -19,6 +19,9 @@ class TaskConfig:
     include_words: list[str] = field(default_factory=list)
     exclude_words: list[str] = field(default_factory=list)
     min_score: float = 60
+    notify_price_drop: bool = True
+    price_drop_ratio: float = 0.05
+    price_drop_amount: float = 50
     score_weights: dict[str, float] = field(default_factory=lambda: {
         "text": 0.35,
         "price": 0.25,
@@ -64,6 +67,9 @@ def load_config(path: str = "config.yaml") -> AppConfig:
             include_words=list(item.get("include_words", []) or []),
             exclude_words=list(item.get("exclude_words", []) or []),
             min_score=float(item.get("min_score", 60) or 60),
+            notify_price_drop=bool(item.get("notify_price_drop", True)),
+            price_drop_ratio=float(item.get("price_drop_ratio", 0.05) or 0.05),
+            price_drop_amount=float(item.get("price_drop_amount", 50) or 50),
             score_weights={
                 "text": float(weights.get("text", 0.35)),
                 "price": float(weights.get("price", 0.25)),
