@@ -1,0 +1,36 @@
+monitor:
+  interval_seconds: 60
+  headless: true
+  max_items_per_keyword: 20
+  storage_db: data/goofish.db
+  user_data_dir: state/browser
+
+dingtalk:
+  enabled: true
+  use_action_card: true
+
+web:
+  enabled: true
+  host: 0.0.0.0
+  port: 8080
+
+tasks:
+  - name: 摩托车
+    keyword: 摩托车
+    min_price: 1000
+    max_price: 20000
+    include_words:
+      - 准新
+      - 个人
+      - 自用
+      - 无事故
+      - 赛科龙
+      - 春风
+      - 豪爵
+    exclude_words:
+      - 事故
+      - 水泡
+      - 抵押
+      - 报废
+      - 分期
+      - 车商勿扰
