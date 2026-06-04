@@ -5,6 +5,10 @@ monitor:
   storage_db: data/goofish.db
   user_data_dir: state/browser
 
+accounts:
+  dir: state/accounts
+  default: acc1
+
 dingtalk:
   enabled: true
   use_action_card: true
@@ -14,10 +18,11 @@ web:
   host: 0.0.0.0
   port: 8080
 
-# 全品类任务示例：每个任务独立关键词、价格、偏好词、排除词、推荐分阈值和降价提醒。
+# 全品类任务示例：每个任务独立关键词、账号、价格、偏好词、排除词、推荐分阈值和降价提醒。
 tasks:
   - name: 数码相机
     keyword: 索尼相机
+    account: acc1
     min_price: 1000
     max_price: 8000
     min_score: 65
@@ -44,6 +49,7 @@ tasks:
 
   - name: 摩托车
     keyword: 摩托车
+    account: acc1
     min_price: 1000
     max_price: 20000
     min_score: 70
