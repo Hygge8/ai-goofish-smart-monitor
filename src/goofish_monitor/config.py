@@ -19,6 +19,7 @@ class TaskConfig:
     include_words: list[str] = field(default_factory=list)
     exclude_words: list[str] = field(default_factory=list)
     min_score: float = 60
+    account: str = ""
     notify_price_drop: bool = True
     price_drop_ratio: float = 0.05
     price_drop_amount: float = 50
@@ -37,6 +38,8 @@ class AppConfig:
     max_items_per_keyword: int = 20
     storage_db: str = "data/goofish.db"
     user_data_dir: str = "state/browser"
+    account_dir: str = "state/accounts"
+    default_account: str = ""
     dingtalk_enabled: bool = True
     tasks: list[TaskConfig] = field(default_factory=list)
     dingtalk_webhook: str = ""
@@ -55,6 +58,7 @@ def load_config(path: str = "config.yaml") -> AppConfig:
     raw: dict[str, Any] = yaml.safe_load(p.read_text(encoding="utf-8")) or {}
     monitor = raw.get("monitor", {}) or {}
     dingtalk = raw.get("dingtalk", {}) or {}
+    accounts = raw.get("accounts", {}) or {}
 
     tasks = []
     for item in raw.get("tasks", []) or []:
@@ -67,6 +71,7 @@ def load_config(path: str = "config.yaml") -> AppConfig:
             include_words=list(item.get("include_words", []) or []),
             exclude_words=list(item.get("exclude_words", []) or []),
             min_score=float(item.get("min_score", 60) or 60),
+            account=str(item.get("account") or accounts.get("default") or ""),
             notify_price_drop=bool(item.get("notify_price_drop", True)),
             price_drop_ratio=float(item.get("price_drop_ratio", 0.05) or 0.05),
             price_drop_amount=float(item.get("price_drop_amount", 50) or 50),
@@ -84,6 +89,8 @@ def load_config(path: str = "config.yaml") -> AppConfig:
         max_items_per_keyword=int(monitor.get("max_items_per_keyword", 20)),
         storage_db=str(monitor.get("storage_db", "data/goofish.db")),
         user_data_dir=str(monitor.get("user_data_dir", "state/browser")),
+        account_dir=str(accounts.get("dir", "state/accounts")),
+        default_account=str(accounts.get("default", "")),
         dingtalk_enabled=bool(dingtalk.get("enabled", True)),
         tasks=tasks,
         dingtalk_webhook=os.getenv("DINGTALK_WEBHOOK", ""),
