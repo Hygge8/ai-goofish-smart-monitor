@@ -1,0 +1,216 @@
+name: Sync Usagi Base
+
+on:
+  workflow_dispatch:
+    inputs:
+      upstream_ref:
+        description: "Usagi upstream branch/tag/commit"
+        required: false
+        default: "master"
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/sync-usagi-base.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sync-usagi-base
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    if: github.event_name == 'workflow_dispatch' || !contains(github.event.head_commit.message, 'Sync upstream Usagi base')
+    runs-on: ubuntu-latest
+    env:
+      UPSTREAM_REF: ${{ github.event.inputs.upstream_ref || 'master' }}
+    steps:
+      - name: Checkout current repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Backup current branch once
+        run: |
+          if ! git ls-remote --exit-code origin refs/heads/backup-before-usagi-sync >/dev/null 2>&1; then
+            git push origin HEAD:backup-before-usagi-sync
+          fi
+
+      - name: Clone upstream Usagi project
+        run: |
+          rm -rf /tmp/usagi-upstream
+          git clone --depth=1 --branch "$UPSTREAM_REF" https://github.com/Usagi-org/ai-goofish-monitor.git /tmp/usagi-upstream
+
+      - name: Replace repository with upstream source
+        run: |
+          rsync -a --delete \
+            --exclude='.git' \
+            --exclude='.github/workflows/sync-usagi-base.yml' \
+            /tmp/usagi-upstream/ ./
+
+      - name: Apply ai-goofish-smart-monitor customizations
+        shell: python
+        run: |
+          from pathlib import Path
+          import re
+          import textwrap
+
+          root = Path('.')
+
+          def read(path):
+              p = root / path
+              return p.read_text(encoding='utf-8') if p.exists() else ''
+
+          def write(path, content):
+              p = root / path
+              p.parent.mkdir(parents=True, exist_ok=True)
+              p.write_text(content, encoding='utf-8')
+
+          # 1) README branding while retaining upstream credit.
+          readme = read('README.md')
+          if readme:
+              readme = re.sub(r'^# .*$', '# ai-goofish-smart-monitor', readme, count=1, flags=re.M)
+              banner = '''\n\n> 本仓库以 `Usagi-org/ai-goofish-monitor` 为底座进行二次开发，保留其 Web 管理、多任务、账号管理、AI 标准、日志与结果浏览能力；本分支额外加入钉钉 ActionCard 图文卡片、按钮化链接、全品类命名与后续评分/降价提醒扩展入口。\n\n'''
+              if '本仓库以 `Usagi-org/ai-goofish-monitor` 为底座' not in readme:
+                  readme = readme.replace('# ai-goofish-smart-monitor\n', '# ai-goofish-smart-monitor\n' + banner, 1)
+              write('README.md', readme)
+
+          # 2) Add DingTalk env examples.
+          env_example = read('.env.example')
+          dingtalk_env = '''\n\n# DingTalk robot ActionCard notification\nDINGTALK_WEBHOOK=\nDINGTALK_SECRET=\n'''
+          if 'DINGTALK_WEBHOOK' not in env_example:
+              write('.env.example', env_example.rstrip() + dingtalk_env)
+
+          # 3) Patch NotificationMessage content to avoid long URL spam in markdown body.
+          base_path = Path('src/infrastructure/external/notification_clients/base.py')
+          base = read(base_path)
+          if base and 'content_lines = [' in base:
+              old = '''        content_lines = [\n            f"价格: {price}",\n            f"原因: {reason}",\n        ]\n        if mobile_link:\n            content_lines.append(f"手机端链接: {mobile_link}")\n            content_lines.append(f"电脑端链接: {desktop_link}")\n        else:\n            content_lines.append(f"链接: {desktop_link}")\n'''
+              new = '''        # 正文只保留商品信息，链接交给通知渠道的按钮处理，避免群消息里出现超长 URL。\n        content_lines = [\n            f"价格: {price}",\n            f"原因: {reason}",\n        ]\n'''
+              base = base.replace(old, new)
+              write(base_path, base)
+
+          # 4) Add DingTalk settings.
+          settings_path = Path('src/infrastructure/config/settings.py')
+          settings = read(settings_path)
+          if settings and 'dingtalk_webhook' not in settings:
+              settings = settings.replace(
+                  '    wx_bot_url: Optional[str] = _env_field(None, "WX_BOT_URL")\n',
+                  '    wx_bot_url: Optional[str] = _env_field(None, "WX_BOT_URL")\n'
+                  '    dingtalk_webhook: Optional[str] = _env_field(None, "DINGTALK_WEBHOOK")\n'
+                  '    dingtalk_secret: Optional[str] = _env_field(None, "DINGTALK_SECRET")\n'
+              )
+              settings = settings.replace(
+                  '            self.wx_bot_url,\n',
+                  '            self.wx_bot_url,\n            self.dingtalk_webhook,\n'
+              )
+              write(settings_path, settings)
+
+          # 5) Add DingTalk ActionCard notification client.
+          write('src/infrastructure/external/notification_clients/dingtalk_client.py', r'''
+          """
+          DingTalk ActionCard notification client.
+          Sends product image + key fields + buttons, without dumping long URLs into the body.
+          """
+          import asyncio
+          import base64
+          import hashlib
+          import hmac
+          import time
+          import urllib.parse
+          from typing import Dict
+
+          import requests
+
+          from .base import NotificationClient
+
+
+          class DingTalkClient(NotificationClient):
+              channel_key = "dingtalk"
+              display_name = "钉钉机器人"
+
+              def __init__(self, webhook_url: str | None = None, secret: str | None = None, pcurl_to_mobile: bool = True):
+                  super().__init__(enabled=bool(webhook_url), pcurl_to_mobile=pcurl_to_mobile)
+                  self.webhook_url = webhook_url
+                  self.secret = secret or ""
+
+              async def send(self, product_data: Dict, reason: str) -> None:
+                  if not self.is_enabled():
+                      raise RuntimeError("钉钉机器人未启用")
+
+                  message = self._build_message(product_data, reason)
+                  image_block = f"![商品图片]({message.image_url})\n\n" if message.image_url else ""
+                  item_url = message.mobile_link or message.desktop_link
+                  text = (
+                      f"{image_block}"
+                      f"### 闲鱼 AI 智能监控：{message.notification_title}\n\n"
+                      f"价格：{message.price}\n\n"
+                      f"标题：{message.title}\n\n"
+                      f"推荐理由：{message.reason}"
+                  )
+                  payload = {
+                      "msgtype": "actionCard",
+                      "actionCard": {
+                          "title": f"闲鱼 AI 智能监控：{message.notification_title}",
+                          "text": text,
+                          "btnOrientation": "1",
+                          "btns": [
+                              {"title": "发起聊天", "actionURL": item_url},
+                              {"title": "立即查看", "actionURL": item_url},
+                          ],
+                      },
+                  }
+
+                  loop = asyncio.get_running_loop()
+                  response = await loop.run_in_executor(
+                      None,
+                      lambda: requests.post(self._signed_url(), json=payload, timeout=15),
+                  )
+                  response.raise_for_status()
+
+              def _signed_url(self) -> str:
+                  if not self.secret:
+                      return self.webhook_url
+                  timestamp = str(round(time.time() * 1000))
+                  string_to_sign = f"{timestamp}\n{self.secret}"
+                  digest = hmac.new(
+                      self.secret.encode("utf-8"),
+                      string_to_sign.encode("utf-8"),
+                      hashlib.sha256,
+                  ).digest()
+                  sign = urllib.parse.quote_plus(base64.b64encode(digest))
+                  joiner = "&" if "?" in self.webhook_url else "?"
+                  return f"{self.webhook_url}{joiner}timestamp={timestamp}&sign={sign}"
+          '''.replace('          ', '', 1))
+
+          # 6) Register DingTalk client in factory.
+          factory_path = Path('src/infrastructure/external/notification_clients/factory.py')
+          factory = read(factory_path)
+          if factory and 'DingTalkClient' not in factory:
+              factory = factory.replace('from .wecom_bot_client import WeComBotClient\n', 'from .wecom_bot_client import WeComBotClient\nfrom .dingtalk_client import DingTalkClient\n')
+              factory = factory.replace(
+                  '        WeComBotClient(settings.wx_bot_url, pcurl_to_mobile=pcurl_to_mobile),\n',
+                  '        WeComBotClient(settings.wx_bot_url, pcurl_to_mobile=pcurl_to_mobile),\n'
+                  '        DingTalkClient(settings.dingtalk_webhook, settings.dingtalk_secret, pcurl_to_mobile=pcurl_to_mobile),\n'
+              )
+              write(factory_path, factory)
+
+          # 7) Add customization notes.
+          write('CUSTOMIZATION.md', '''# ai-goofish-smart-monitor customizations\n\nThis repository is synchronized from `Usagi-org/ai-goofish-monitor` and then patched with:\n\n- Project branding: `ai-goofish-smart-monitor`\n- DingTalk robot ActionCard notification client\n- Product image in DingTalk message body\n- Buttons for item links instead of long URLs in message text\n- Preserved upstream MIT license and attribution\n\nThe previous lightweight prototype branch is backed up as `backup-before-usagi-sync` when the sync workflow first runs.\n''')
+
+      - name: Commit synchronized upstream source
+        run: |
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+            exit 0
+          fi
+          git commit -m "Sync upstream Usagi base and apply smart monitor customizations [skip ci]"
+          git push origin HEAD:main
