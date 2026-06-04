@@ -14,11 +14,41 @@ web:
   host: 0.0.0.0
   port: 8080
 
+# 全品类任务示例：每个任务独立关键词、价格、偏好词、排除词和推荐分阈值。
 tasks:
+  - name: 数码相机
+    keyword: 索尼相机
+    min_price: 1000
+    max_price: 8000
+    min_score: 65
+    score_weights:
+      text: 0.35
+      price: 0.25
+      seller: 0.20
+      vision: 0.20
+    include_words:
+      - 自用
+      - 成色好
+      - 配件齐全
+      - 实拍
+      - 发票
+    exclude_words:
+      - 故障
+      - 维修
+      - 进水
+      - 翻新
+      - 网图
+
   - name: 摩托车
     keyword: 摩托车
     min_price: 1000
     max_price: 20000
+    min_score: 70
+    score_weights:
+      text: 0.30
+      price: 0.30
+      seller: 0.25
+      vision: 0.15
     include_words:
       - 准新
       - 个人
