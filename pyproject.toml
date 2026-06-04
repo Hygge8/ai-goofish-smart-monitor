@@ -3,9 +3,9 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "goofish-moto-monitor"
+name = "ai-goofish-smart-monitor"
 version = "0.1.0"
-description = "闲鱼摩托车商品监控与钉钉图文卡片通知"
+description = "闲鱼 AI 智能全品类商品监控与钉钉图文卡片通知"
 requires-python = ">=3.10"
 dependencies = [
   "playwright==1.49.1",
