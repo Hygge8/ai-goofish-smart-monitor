@@ -17,6 +17,8 @@ NOTIFICATION_FIELD_MAP = {
     "GOTIFY_TOKEN": "gotify_token",
     "BARK_URL": "bark_url",
     "WX_BOT_URL": "wx_bot_url",
+    "DINGTALK_WEBHOOK": "dingtalk_webhook",
+    "DINGTALK_SECRET": "dingtalk_secret",
     "TELEGRAM_BOT_TOKEN": "telegram_bot_token",
     "TELEGRAM_CHAT_ID": "telegram_chat_id",
     "TELEGRAM_API_BASE_URL": "telegram_api_base_url",
@@ -34,6 +36,7 @@ CHANNEL_NOTIFICATION_FIELDS = {
     "bark": {"BARK_URL"},
     "gotify": {"GOTIFY_URL", "GOTIFY_TOKEN"},
     "wecom": {"WX_BOT_URL"},
+    "dingtalk": {"DINGTALK_WEBHOOK", "DINGTALK_SECRET"},
     "telegram": {
         "TELEGRAM_BOT_TOKEN",
         "TELEGRAM_CHAT_ID",
@@ -53,6 +56,8 @@ SECRET_NOTIFICATION_FIELDS = {
     "BARK_URL",
     "GOTIFY_TOKEN",
     "WX_BOT_URL",
+    "DINGTALK_WEBHOOK",
+    "DINGTALK_SECRET",
     "TELEGRAM_BOT_TOKEN",
     "WEBHOOK_URL",
     "WEBHOOK_HEADERS",
@@ -69,6 +74,7 @@ URL_FIELDS = {
     "GOTIFY_URL",
     "BARK_URL",
     "WX_BOT_URL",
+    "DINGTALK_WEBHOOK",
     "TELEGRAM_API_BASE_URL",
     "WEBHOOK_URL",
 }
@@ -97,6 +103,8 @@ def build_notification_settings_response(
         "GOTIFY_TOKEN": "",
         "BARK_URL": "",
         "WX_BOT_URL": "",
+        "DINGTALK_WEBHOOK": "",
+        "DINGTALK_SECRET": "",
         "TELEGRAM_BOT_TOKEN": "",
         "TELEGRAM_CHAT_ID": notification_settings.telegram_chat_id or "",
         "TELEGRAM_API_BASE_URL": (
@@ -128,6 +136,8 @@ def build_notification_status_flags(
         "gotify_token_set": bool(notification_settings.gotify_token),
         "bark_url_set": bool(notification_settings.bark_url),
         "wx_bot_url_set": bool(notification_settings.wx_bot_url),
+        "dingtalk_webhook_set": bool(notification_settings.dingtalk_webhook),
+        "dingtalk_secret_set": bool(notification_settings.dingtalk_secret),
         "telegram_bot_token_set": bool(notification_settings.telegram_bot_token),
         "telegram_chat_id_set": bool(notification_settings.telegram_chat_id),
         "webhook_url_set": bool(notification_settings.webhook_url),
@@ -148,6 +158,8 @@ def build_configured_channels(
         channels.append("gotify")
     if notification_settings.wx_bot_url:
         channels.append("wecom")
+    if notification_settings.dingtalk_webhook:
+        channels.append("dingtalk")
     if notification_settings.telegram_bot_token and notification_settings.telegram_chat_id:
         channels.append("telegram")
     if notification_settings.webhook_url:
@@ -257,6 +269,8 @@ def load_notification_settings() -> NotificationSettings:
             "gotify_token": _normalize_existing_text(env_manager.get_value("GOTIFY_TOKEN")),
             "bark_url": _normalize_existing_text(env_manager.get_value("BARK_URL")),
             "wx_bot_url": _normalize_existing_text(env_manager.get_value("WX_BOT_URL")),
+            "dingtalk_webhook": _normalize_existing_text(env_manager.get_value("DINGTALK_WEBHOOK")),
+            "dingtalk_secret": _normalize_existing_text(env_manager.get_value("DINGTALK_SECRET")),
             "telegram_bot_token": _normalize_existing_text(env_manager.get_value("TELEGRAM_BOT_TOKEN")),
             "telegram_chat_id": _normalize_existing_text(env_manager.get_value("TELEGRAM_CHAT_ID")),
             "telegram_api_base_url": (
