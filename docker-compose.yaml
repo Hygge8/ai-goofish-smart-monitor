@@ -16,7 +16,6 @@ services:
       - ./.env:/app/.env
       - ./data:/app/data
       - ./state:/app/state
-      - ./config.json:/app/config.json
       - ./prompts:/app/prompts
       - ./jsonl:/app/jsonl
       - ./logs:/app/logs
