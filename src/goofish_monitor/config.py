@@ -4,9 +4,10 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+import os
+
 import yaml
 from dotenv import load_dotenv
-import os
 
 
 @dataclass
@@ -17,6 +18,13 @@ class TaskConfig:
     max_price: float = 99999999
     include_words: list[str] = field(default_factory=list)
     exclude_words: list[str] = field(default_factory=list)
+    min_score: float = 60
+    score_weights: dict[str, float] = field(default_factory=lambda: {
+        "text": 0.35,
+        "price": 0.25,
+        "seller": 0.20,
+        "vision": 0.20,
+    })
 
 
 @dataclass
@@ -47,13 +55,21 @@ def load_config(path: str = "config.yaml") -> AppConfig:
 
     tasks = []
     for item in raw.get("tasks", []) or []:
+        weights = item.get("score_weights") or item.get("weights") or {}
         tasks.append(TaskConfig(
             name=str(item.get("name") or item.get("keyword") or "默认任务"),
-            keyword=str(item.get("keyword") or item.get("name") or "摩托车"),
+            keyword=str(item.get("keyword") or item.get("name") or "闲鱼"),
             min_price=float(item.get("min_price", 0) or 0),
             max_price=float(item.get("max_price", 99999999) or 99999999),
             include_words=list(item.get("include_words", []) or []),
             exclude_words=list(item.get("exclude_words", []) or []),
+            min_score=float(item.get("min_score", 60) or 60),
+            score_weights={
+                "text": float(weights.get("text", 0.35)),
+                "price": float(weights.get("price", 0.25)),
+                "seller": float(weights.get("seller", 0.20)),
+                "vision": float(weights.get("vision", 0.20)),
+            },
         ))
 
     return AppConfig(
