@@ -5,13 +5,55 @@ import logging
 
 from .account import AccountStore
 from .ai import analyze_item
-from .config import AppConfig
+from .config import AppConfig, TaskConfig
 from .db import SeenStore
+from .errors import SearchBlockedError
 from .notifier.dingtalk import send_action_card
 from .price_watch import detect_price_drop
 from .scraper import GoofishScraper
 
 logger = logging.getLogger(__name__)
+
+
+def _candidate_accounts(task: TaskConfig, accounts: AccountStore) -> list[str]:
+    names = []
+    if task.account:
+        names.append(task.account)
+    for name in accounts.list_accounts():
+        if name not in names:
+            names.append(name)
+    return names or [""]
+
+
+async def _search_with_account_retry(config: AppConfig, task: TaskConfig, accounts: AccountStore):
+    last_error: Exception | None = None
+    for account_name in _candidate_accounts(task, accounts):
+        account_state = accounts.load(account_name) if account_name else None
+        if account_name and not account_state:
+            logger.warning("任务 %s 配置了账号 %s，但未找到登录态文件", task.name, account_name)
+            accounts.mark_status(account_name, "missing", "未找到登录态文件")
+            continue
+
+        scraper = GoofishScraper(
+            headless=config.headless,
+            user_data_dir=f"{config.user_data_dir}/{account_name or 'default'}",
+            account_state=account_state,
+        )
+        try:
+            items = await scraper.search(task.keyword, config.max_items_per_keyword)
+            if account_name:
+                accounts.mark_status(account_name, "ok", f"任务 {task.name} 搜索成功，抓到 {len(items)} 条")
+            return account_name, items
+        except SearchBlockedError as exc:
+            last_error = exc
+            if account_name:
+                accounts.mark_status(account_name, "blocked", str(exc))
+            logger.warning("账号 %s 搜索任务 %s 被拦截，准备尝试下一个账号：%s", account_name or "default", task.name, exc)
+            continue
+
+    if last_error:
+        raise last_error
+    return "", []
 
 
 async def run_once(config: AppConfig) -> int:
@@ -20,18 +62,9 @@ async def run_once(config: AppConfig) -> int:
     sent_count = 0
 
     for task in config.tasks:
-        account_state = accounts.load(task.account) if task.account else None
-        if task.account and not account_state:
-            logger.warning("任务 %s 配置了账号 %s，但未找到登录态文件", task.name, task.account)
-
-        scraper = GoofishScraper(
-            headless=config.headless,
-            user_data_dir=f"{config.user_data_dir}/{task.account or 'default'}",
-            account_state=account_state,
-        )
         logger.info("开始搜索任务：%s / %s", task.name, task.keyword)
-        items = await scraper.search(task.keyword, config.max_items_per_keyword)
-        logger.info("任务 %s 抓到 %s 条商品", task.name, len(items))
+        used_account, items = await _search_with_account_retry(config, task, accounts)
+        logger.info("任务 %s 使用账号 %s 抓到 %s 条商品", task.name, used_account or "default", len(items))
 
         for item in items:
             previous_price = store.previous_price(item.item_id)
@@ -44,7 +77,7 @@ async def run_once(config: AppConfig) -> int:
             item_dict["score"] = score
             item_dict["total_score"] = score.get("total_score")
             item_dict["price_drop"] = price_drop.to_dict()
-            item_dict["account"] = task.account
+            item_dict["account"] = used_account
 
             already_seen = store.has_seen(item.item_id)
             store.mark_seen(item_dict)
