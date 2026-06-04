@@ -1,14 +1,22 @@
-# 闲鱼摩托车监控助手
+# ai-goofish-smart-monitor
 
-一个面向“闲鱼 / goofish 摩托车商品”的监控项目，支持关键词监控、价格过滤、AI/规则推荐、SQLite 去重、钉钉机器人图文卡片通知。
+闲鱼 AI 智能监控助手，面向全品类商品监控，不再限定摩托车。支持关键词任务、价格区间过滤、包含词 / 排除词过滤、SQLite 去重、钉钉机器人图文卡片通知和 Web 状态页。
 
-重点解决你之前遇到的问题：
+重点解决：
 
 - 通知不能只发一长串链接；
 - 商品图片要显示在钉钉消息里；
 - 电脑端链接和手机端链接不要堆在正文里；
 - 只保留按钮入口，例如“立即查看”“发起聊天”；
-- `{{content}}` 不再拼接长链接，避免消息刷屏。
+- 正文只展示商品标题、价格、地区、推荐理由和商家信息。
+
+## 适用场景
+
+可以监控任意关键词，例如：
+
+```text
+摩托车、手机、相机、电脑、显卡、家电、家具、乐器、潮玩、二手车、自行车、数码配件
+```
 
 ## 效果
 
@@ -17,11 +25,11 @@
 ```text
 商品图片
 
-闲鱼摩托车监控：🚨 新推荐！
-类型：新发布  关键词：摩托车
-价格：￥5000  地区：广东
-标题：自用23年准信5000公里实表赛科龙ra2
-推荐理由：价格低于市场均价，个人卖家，描述清晰。
+闲鱼 AI 智能监控：🚨 新推荐！
+类型：新发布  关键词：相机
+价格：￥3500  地区：广东
+标题：自用索尼 A6400，成色好，配件齐全
+推荐理由：价格符合区间，命中“自用、成色好、配件齐全”等关键词。
 商家：广东个人玩家
 
 [发起聊天] [立即查看]
@@ -30,11 +38,12 @@
 ## 目录结构
 
 ```text
-goofish-moto-monitor
+ai-goofish-smart-monitor
 ├── config.example.yaml          # 配置模板
 ├── docker-compose.yml           # Docker 编排
 ├── Dockerfile
 ├── requirements.txt
+├── pyproject.toml
 ├── src/goofish_monitor/
 │   ├── cli.py                   # 命令行入口
 │   ├── config.py                # 配置加载
@@ -91,6 +100,13 @@ monitor:
   max_items_per_keyword: 20
 
 tasks:
+  - name: 数码相机
+    keyword: 索尼相机
+    min_price: 1000
+    max_price: 8000
+    include_words: ["自用", "成色好", "配件齐全"]
+    exclude_words: ["故障", "维修", "进水"]
+
   - name: 摩托车
     keyword: 摩托车
     min_price: 1000
@@ -105,13 +121,19 @@ tasks:
 python -m goofish_monitor.cli test-dingtalk --config config.yaml
 ```
 
-### 4. 开始监控
+### 4. 搜索测试
+
+```bash
+python -m goofish_monitor.cli search --keyword 相机 --limit 5
+```
+
+### 5. 开始监控
 
 ```bash
 python -m goofish_monitor.cli run --config config.yaml
 ```
 
-### 5. Web 状态页
+### 6. Web 状态页
 
 ```bash
 uvicorn goofish_monitor.web:app --host 0.0.0.0 --port 8080
@@ -139,7 +161,7 @@ docker compose logs -f monitor
 
 钉钉卡片里的图片必须是公网可访问的 HTTPS 图片地址。
 
-本项目优先使用闲鱼页面里抓到的商品首图 `image_url`。如果你后面把图片下载到本地，钉钉无法直接显示本地路径，需要再配置 OSS、图床或自己的静态文件服务器。
+本项目优先使用闲鱼页面里抓到的商品首图 `image_url`。如果后面把图片下载到本地，钉钉无法直接显示本地路径，需要配置 OSS、图床或自己的静态文件服务器。
 
 ## 钉钉通知为什么不用 markdown？
 
@@ -161,7 +183,7 @@ docker compose logs -f monitor
 建议先本地运行：
 
 ```bash
-python -m goofish_monitor.cli search --keyword 摩托车 --limit 5
+python -m goofish_monitor.cli search --keyword 相机 --limit 5
 ```
 
 确认能抓到标题、价格、图片、链接后，再开启钉钉推送。
