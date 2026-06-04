@@ -52,8 +52,9 @@ jobs:
         run: |
           rsync -a --delete \
             --exclude='.git' \
-            --exclude='.github/workflows/sync-usagi-base.yml' \
+            --exclude='.github/workflows/' \
             /tmp/usagi-upstream/ ./
+          find .github/workflows -type f ! -name 'sync-usagi-base.yml' -delete 2>/dev/null || true
 
       - name: Apply ai-goofish-smart-monitor customizations
         shell: python
@@ -114,7 +115,7 @@ jobs:
               write(settings_path, settings)
 
           # 5) Add DingTalk ActionCard notification client.
-          write('src/infrastructure/external/notification_clients/dingtalk_client.py', r'''
+          dingtalk_client = r'''
           """
           DingTalk ActionCard notification client.
           Sends product image + key fields + buttons, without dumping long URLs into the body.
@@ -188,7 +189,8 @@ jobs:
                   sign = urllib.parse.quote_plus(base64.b64encode(digest))
                   joiner = "&" if "?" in self.webhook_url else "?"
                   return f"{self.webhook_url}{joiner}timestamp={timestamp}&sign={sign}"
-          '''.replace('          ', '', 1))
+          '''
+          write('src/infrastructure/external/notification_clients/dingtalk_client.py', textwrap.dedent(dingtalk_client).lstrip())
 
           # 6) Register DingTalk client in factory.
           factory_path = Path('src/infrastructure/external/notification_clients/factory.py')
