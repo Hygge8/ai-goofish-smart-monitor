@@ -2,10 +2,9 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from typing import Iterable
 
 from .ai import analyze_item
-from .config import AppConfig, TaskConfig
+from .config import AppConfig
 from .db import SeenStore
 from .notifier.dingtalk import send_action_card
 from .scraper import GoofishScraper
@@ -27,9 +26,11 @@ async def run_once(config: AppConfig) -> int:
             if store.has_seen(item.item_id):
                 continue
 
-            ok, reason = analyze_item(item, task)
+            ok, reason, score = analyze_item(item, task)
             item_dict = item.to_dict()
             item_dict["reason"] = reason
+            item_dict["score"] = score
+            item_dict["total_score"] = score.get("total_score")
 
             store.mark_seen(item_dict)
             if not ok:
