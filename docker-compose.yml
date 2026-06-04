@@ -1,0 +1,27 @@
+services:
+  monitor:
+    build: .
+    container_name: goofish-moto-monitor
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - ./config.yaml:/app/config.yaml:ro
+      - ./data:/app/data
+      - ./state:/app/state
+      - ./logs:/app/logs
+    command: ["python", "-m", "goofish_monitor.cli", "run", "--config", "config.yaml"]
+
+  web:
+    build: .
+    container_name: goofish-moto-monitor-web
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - ./config.yaml:/app/config.yaml:ro
+      - ./data:/app/data
+      - ./state:/app/state
+    ports:
+      - "8080:8080"
+    command: ["uvicorn", "goofish_monitor.web:app", "--host", "0.0.0.0", "--port", "8080"]
