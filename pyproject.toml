@@ -1,24 +1,22 @@
-[build-system]
-requires = ["setuptools>=68"]
-build-backend = "setuptools.build_meta"
-
-[project]
-name = "ai-goofish-smart-monitor"
-version = "0.1.0"
-description = "闲鱼 AI 智能全品类商品监控与钉钉图文卡片通知"
-requires-python = ">=3.10"
-dependencies = [
-  "playwright==1.49.1",
-  "requests==2.32.3",
-  "PyYAML==6.0.2",
-  "python-dotenv==1.0.1",
-  "fastapi==0.115.6",
-  "uvicorn==0.32.1",
-  "pydantic==2.10.3",
+[tool.pytest.ini_options]
+addopts = "-v --tb=short"
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+markers = [
+    "live: real traffic smoke tests that require real credentials and external services",
+    "live_slow: slower optional live smoke tests such as AI task generation",
 ]
 
-[project.scripts]
-goofish-monitor = "goofish_monitor.cli:main"
+[tool.coverage.run]
+source = ["src"]
 
-[tool.setuptools.packages.find]
-where = ["src"]
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+]
