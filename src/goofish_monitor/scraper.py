@@ -6,8 +6,15 @@ from urllib.parse import quote
 
 from playwright.async_api import async_playwright
 
+from .errors import SearchBlockedError
 from .models import GoofishItem
 from .url_utils import extract_item_id, normalize_item_link, build_mobile_share_link
+
+
+BLOCK_KEYWORDS = [
+    "登录", "验证码", "安全验证", "滑块", "访问受限", "操作太频繁", "网络繁忙",
+    "请稍后再试", "验证一下", "账号异常", "风险", "人机验证",
+]
 
 
 def _to_float(value: str) -> float | None:
@@ -57,20 +64,38 @@ class GoofishScraper:
                     "Chrome/124.0.0.0 Safari/537.36"
                 ),
             )
-            if self.account_state.get("cookies"):
-                await context.add_cookies(self.account_state["cookies"])
+            try:
+                if self.account_state.get("cookies"):
+                    await context.add_cookies(self.account_state["cookies"])
 
-            page = context.pages[0] if context.pages else await context.new_page()
-            await page.goto(url, wait_until="domcontentloaded", timeout=60000)
-            await page.wait_for_timeout(3000)
+                page = context.pages[0] if context.pages else await context.new_page()
+                await page.goto(url, wait_until="domcontentloaded", timeout=60000)
+                await page.wait_for_timeout(3000)
 
-            for _ in range(3):
-                await page.mouse.wheel(0, 1600)
-                await page.wait_for_timeout(1200)
+                await self._check_blocked(page)
 
-            items = await self._extract_from_page(page, keyword, limit)
-            await context.close()
-            return items
+                for _ in range(3):
+                    await page.mouse.wheel(0, 1600)
+                    await page.wait_for_timeout(1200)
+
+                items = await self._extract_from_page(page, keyword, limit)
+                if not items:
+                    await self._check_blocked(page)
+                return items
+            finally:
+                await context.close()
+
+    async def _check_blocked(self, page) -> None:
+        title = ""
+        text = ""
+        try:
+            title = await page.title()
+            text = await page.locator("body").inner_text(timeout=3000)
+        except Exception:
+            return
+        combined = f"{title}\n{text}"[:3000]
+        if any(word in combined for word in BLOCK_KEYWORDS):
+            raise SearchBlockedError("页面疑似被登录、验证码、风控或异常提示拦截")
 
     async def _extract_from_page(self, page, keyword: str, limit: int) -> list[GoofishItem]:
         js = """
