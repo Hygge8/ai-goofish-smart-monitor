@@ -14,13 +14,16 @@ web:
   host: 0.0.0.0
   port: 8080
 
-# 全品类任务示例：每个任务独立关键词、价格、偏好词、排除词和推荐分阈值。
+# 全品类任务示例：每个任务独立关键词、价格、偏好词、排除词、推荐分阈值和降价提醒。
 tasks:
   - name: 数码相机
     keyword: 索尼相机
     min_price: 1000
     max_price: 8000
     min_score: 65
+    notify_price_drop: true
+    price_drop_ratio: 0.05      # 降幅达到 5% 时提醒
+    price_drop_amount: 100      # 或下降金额达到 100 元时提醒
     score_weights:
       text: 0.35
       price: 0.25
@@ -44,6 +47,9 @@ tasks:
     min_price: 1000
     max_price: 20000
     min_score: 70
+    notify_price_drop: true
+    price_drop_ratio: 0.03      # 摩托车金额较大，降幅 3% 即提醒
+    price_drop_amount: 300
     score_weights:
       text: 0.30
       price: 0.30
