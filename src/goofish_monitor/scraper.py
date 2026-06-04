@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import json
 import re
+from pathlib import Path
 from urllib.parse import quote
 
 from playwright.async_api import async_playwright
@@ -33,12 +33,19 @@ def _pick_image(raw: str) -> str:
 
 
 class GoofishScraper:
-    def __init__(self, headless: bool = True, user_data_dir: str = "state/browser"):
+    def __init__(
+        self,
+        headless: bool = True,
+        user_data_dir: str = "state/browser",
+        account_state: dict | None = None,
+    ):
         self.headless = headless
         self.user_data_dir = user_data_dir
+        self.account_state = account_state or {}
 
     async def search(self, keyword: str, limit: int = 20) -> list[GoofishItem]:
         url = f"https://www.goofish.com/search?q={quote(keyword)}"
+        Path(self.user_data_dir).mkdir(parents=True, exist_ok=True)
         async with async_playwright() as p:
             context = await p.chromium.launch_persistent_context(
                 self.user_data_dir,
@@ -50,11 +57,13 @@ class GoofishScraper:
                     "Chrome/124.0.0.0 Safari/537.36"
                 ),
             )
+            if self.account_state.get("cookies"):
+                await context.add_cookies(self.account_state["cookies"])
+
             page = context.pages[0] if context.pages else await context.new_page()
             await page.goto(url, wait_until="domcontentloaded", timeout=60000)
             await page.wait_for_timeout(3000)
 
-            # 多滚动几次，触发商品列表加载。
             for _ in range(3):
                 await page.mouse.wheel(0, 1600)
                 await page.wait_for_timeout(1200)
@@ -125,7 +134,19 @@ class GoofishScraper:
         return parsed
 
 
-def search_sync(keyword: str, limit: int = 20, headless: bool = True, user_data_dir: str = "state/browser") -> list[GoofishItem]:
+def search_sync(
+    keyword: str,
+    limit: int = 20,
+    headless: bool = True,
+    user_data_dir: str = "state/browser",
+    account_state: dict | None = None,
+) -> list[GoofishItem]:
     import asyncio
 
-    return asyncio.run(GoofishScraper(headless=headless, user_data_dir=user_data_dir).search(keyword, limit))
+    return asyncio.run(
+        GoofishScraper(
+            headless=headless,
+            user_data_dir=user_data_dir,
+            account_state=account_state,
+        ).search(keyword, limit)
+    )
