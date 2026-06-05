@@ -226,6 +226,7 @@ const enUSExtra = {
     footerHint: 'Saving submits only changed fields. Clear actions explicitly remove the related channel configuration.',
     secretPlaceholder: 'Leave blank to keep the current value, or enter a new value to overwrite it',
     secretKeepPlaceholder: 'Leave blank to keep the current value',
+    secretConfigured: 'A sensitive value is configured and hidden on this page.',
     notConfigured: 'Not configured yet.',
     ntfy: {
       description: 'Best for lightweight delivery. The topic URL is not sensitive and can be displayed directly.',
