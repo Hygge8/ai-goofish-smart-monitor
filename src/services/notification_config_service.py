@@ -79,6 +79,12 @@ URL_FIELDS = {
     "WEBHOOK_URL",
 }
 
+WEBHOOK_EXTRA_ATTRS = (
+    "webhook_headers",
+    "webhook_query_parameters",
+    "webhook_body",
+)
+
 ALLOWED_WEBHOOK_METHODS = {"GET", "POST"}
 ALLOWED_WEBHOOK_CONTENT_TYPES = {"JSON", "FORM"}
 
@@ -324,6 +330,12 @@ def _normalize_notification_values(values: dict) -> dict:
     normalized["webhook_content_type"] = (
         (normalized.get("webhook_content_type") or "JSON").strip().upper()
     )
+
+    # Webhook 是独立渠道。若未配置 WEBHOOK_URL，则忽略默认示例里的 Header/Query/Body，
+    # 避免用户只配置钉钉、企业微信等渠道时，被 Webhook 示例参数拦截保存。
+    if not normalized.get("webhook_url"):
+        for attr_name in WEBHOOK_EXTRA_ATTRS:
+            normalized[attr_name] = None
 
     for env_name, expect_dict in JSON_NOTIFICATION_FIELDS.items():
         attr_name = NOTIFICATION_FIELD_MAP[env_name]
