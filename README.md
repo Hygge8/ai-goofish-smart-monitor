@@ -25,6 +25,10 @@
 ![结果查看](static/img_2.png)
 ![通知推送](static/img_3.png)
 
+### 钉钉移动端推送效果
+
+![钉钉移动端推送效果](docs/images/dingtalk-mobile-card.svg)
+
 ## 🐳 Docker 部署（推荐）
 
 > 本项目基于 `Usagi-org/ai-goofish-monitor` 二次开发。部署本版本时，请使用下面的当前仓库地址，这样才能包含钉钉 ActionCard、按钮化链接、商品图片卡片和项目名等定制改动。
