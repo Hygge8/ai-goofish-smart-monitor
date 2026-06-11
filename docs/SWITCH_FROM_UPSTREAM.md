@@ -28,6 +28,155 @@ https://github.com/Hygge8/ai-goofish-smart-monitor
 项目名 ai-goofish-smart-monitor
 ```
 
+## Windows CMD 操作步骤
+
+> 你当前看到的 `D:\ai\ai-goofish-monitor>` 是 Windows CMD，不是 PowerShell。CMD 不能执行 `New-Item`、`Copy-Item`，需要用下面这组 `mkdir`、`copy`、`xcopy` 命令。
+
+### 1. 进入项目目录并停止服务
+
+```cmd
+cd /d D:\ai\ai-goofish-monitor
+docker compose down
+```
+
+如果 `docker ps` 没有任何容器，说明当前没有正在运行的容器，可以继续下一步。
+
+### 2. 备份本地数据
+
+```cmd
+mkdir ..\goofish-backup 2>nul
+
+copy .env ..\goofish-backup\ /Y 2>nul
+copy config.json ..\goofish-backup\ /Y 2>nul
+copy xianyu_state.json ..\goofish-backup\ /Y 2>nul
+
+xcopy data ..\goofish-backup\data\ /E /I /Y 2>nul
+xcopy state ..\goofish-backup\state\ /E /I /Y 2>nul
+xcopy prompts ..\goofish-backup\prompts\ /E /I /Y 2>nul
+xcopy logs ..\goofish-backup\logs\ /E /I /Y 2>nul
+xcopy images ..\goofish-backup\images\ /E /I /Y 2>nul
+xcopy jsonl ..\goofish-backup\jsonl\ /E /I /Y 2>nul
+xcopy price_history ..\goofish-backup\price_history\ /E /I /Y 2>nul
+```
+
+检查备份目录：
+
+```cmd
+dir ..\goofish-backup
+```
+
+这些目录一般包含：
+
+```text
+.env                 AI、通知、Web 登录等配置
+data/                SQLite 数据库、任务、结果
+state/               闲鱼账号登录态
+prompts/             Prompt 配置
+logs/                运行日志
+images/              商品图片缓存
+jsonl/               旧版结果数据
+price_history/       旧版价格历史
+config.json          旧版任务配置兼容文件
+xianyu_state.json    旧版登录态兼容文件
+```
+
+### 3. 切换到修复版仓库
+
+```cmd
+git remote remove origin
+git remote add origin https://github.com/Hygge8/ai-goofish-smart-monitor.git
+git fetch origin main
+git reset --hard origin/main
+```
+
+### 4. 恢复本地数据
+
+```cmd
+copy ..\goofish-backup\.env . /Y 2>nul
+copy ..\goofish-backup\config.json . /Y 2>nul
+copy ..\goofish-backup\xianyu_state.json . /Y 2>nul
+
+xcopy ..\goofish-backup\data data\ /E /I /Y 2>nul
+xcopy ..\goofish-backup\state state\ /E /I /Y 2>nul
+xcopy ..\goofish-backup\prompts prompts\ /E /I /Y 2>nul
+xcopy ..\goofish-backup\logs logs\ /E /I /Y 2>nul
+xcopy ..\goofish-backup\images images\ /E /I /Y 2>nul
+xcopy ..\goofish-backup\jsonl jsonl\ /E /I /Y 2>nul
+xcopy ..\goofish-backup\price_history price_history\ /E /I /Y 2>nul
+```
+
+### 5. 重新构建并启动
+
+```cmd
+docker compose up -d --build
+docker compose logs -f app
+```
+
+### 6. 打开后台
+
+```text
+http://127.0.0.1:8000
+```
+
+## Windows PowerShell 操作步骤
+
+> 只有在 PowerShell 窗口中，下面这些 `New-Item`、`Copy-Item` 命令才可以执行。如果你在 CMD 里，请使用上面的 Windows CMD 操作步骤。
+
+### 1. 进入项目目录并停止服务
+
+```powershell
+cd D:\ai\ai-goofish-monitor
+docker compose down
+```
+
+### 2. 备份本地数据
+
+```powershell
+New-Item -ItemType Directory -Force ..\goofish-backup
+
+Copy-Item .env ..\goofish-backup\ -Force -ErrorAction SilentlyContinue
+Copy-Item data ..\goofish-backup\ -Recurse -Force -ErrorAction SilentlyContinue
+Copy-Item state ..\goofish-backup\ -Recurse -Force -ErrorAction SilentlyContinue
+Copy-Item prompts ..\goofish-backup\ -Recurse -Force -ErrorAction SilentlyContinue
+Copy-Item logs ..\goofish-backup\ -Recurse -Force -ErrorAction SilentlyContinue
+Copy-Item images ..\goofish-backup\ -Recurse -Force -ErrorAction SilentlyContinue
+Copy-Item jsonl ..\goofish-backup\ -Recurse -Force -ErrorAction SilentlyContinue
+Copy-Item price_history ..\goofish-backup\ -Recurse -Force -ErrorAction SilentlyContinue
+Copy-Item config.json ..\goofish-backup\ -Force -ErrorAction SilentlyContinue
+Copy-Item xianyu_state.json ..\goofish-backup\ -Force -ErrorAction SilentlyContinue
+```
+
+### 3. 切换到修复版仓库
+
+```powershell
+git remote remove origin
+git remote add origin https://github.com/Hygge8/ai-goofish-smart-monitor.git
+git fetch origin main
+git reset --hard origin/main
+```
+
+### 4. 恢复本地数据
+
+```powershell
+Copy-Item ..\goofish-backup\.env . -Force -ErrorAction SilentlyContinue
+Copy-Item ..\goofish-backup\data . -Recurse -Force -ErrorAction SilentlyContinue
+Copy-Item ..\goofish-backup\state . -Recurse -Force -ErrorAction SilentlyContinue
+Copy-Item ..\goofish-backup\prompts . -Recurse -Force -ErrorAction SilentlyContinue
+Copy-Item ..\goofish-backup\logs . -Recurse -Force -ErrorAction SilentlyContinue
+Copy-Item ..\goofish-backup\images . -Recurse -Force -ErrorAction SilentlyContinue
+Copy-Item ..\goofish-backup\jsonl . -Recurse -Force -ErrorAction SilentlyContinue
+Copy-Item ..\goofish-backup\price_history . -Recurse -Force -ErrorAction SilentlyContinue
+Copy-Item ..\goofish-backup\config.json . -Force -ErrorAction SilentlyContinue
+Copy-Item ..\goofish-backup\xianyu_state.json . -Force -ErrorAction SilentlyContinue
+```
+
+### 5. 启动
+
+```powershell
+docker compose up -d --build
+docker compose logs -f app
+```
+
 ## Linux / macOS 操作步骤
 
 ### 1. 进入你现在安装的目录
@@ -56,20 +205,7 @@ cp -a images ../goofish-backup/ 2>/dev/null || true
 cp -a jsonl ../goofish-backup/ 2>/dev/null || true
 cp -a price_history ../goofish-backup/ 2>/dev/null || true
 cp -a config.json ../goofish-backup/ 2>/dev/null || true
-```
-
-这些目录一般包含：
-
-```text
-.env                 AI、通知、Web 登录等配置
-data/                SQLite 数据库、任务、结果
-state/               闲鱼账号登录态
-prompts/             Prompt 配置
-logs/                运行日志
-images/              商品图片缓存
-jsonl/               旧版结果数据
-price_history/       旧版价格历史
-config.json          旧版任务配置兼容文件
+cp -a xianyu_state.json ../goofish-backup/ 2>/dev/null || true
 ```
 
 ### 4. 切换到修复版仓库
@@ -93,72 +229,12 @@ cp -a ../goofish-backup/images . 2>/dev/null || true
 cp -a ../goofish-backup/jsonl . 2>/dev/null || true
 cp -a ../goofish-backup/price_history . 2>/dev/null || true
 cp -a ../goofish-backup/config.json . 2>/dev/null || true
+cp -a ../goofish-backup/xianyu_state.json . 2>/dev/null || true
 ```
 
 ### 6. 重新构建并启动
 
 ```bash
-docker compose up -d --build
-docker compose logs -f app
-```
-
-### 7. 打开后台
-
-```text
-http://127.0.0.1:8000
-```
-
-## Windows PowerShell 操作步骤
-
-### 1. 进入项目目录并停止服务
-
-```powershell
-cd ai-goofish-monitor
-docker compose down
-```
-
-### 2. 备份本地数据
-
-```powershell
-New-Item -ItemType Directory -Force ..\goofish-backup
-
-Copy-Item .env ..\goofish-backup\ -Force -ErrorAction SilentlyContinue
-Copy-Item data ..\goofish-backup\ -Recurse -Force -ErrorAction SilentlyContinue
-Copy-Item state ..\goofish-backup\ -Recurse -Force -ErrorAction SilentlyContinue
-Copy-Item prompts ..\goofish-backup\ -Recurse -Force -ErrorAction SilentlyContinue
-Copy-Item logs ..\goofish-backup\ -Recurse -Force -ErrorAction SilentlyContinue
-Copy-Item images ..\goofish-backup\ -Recurse -Force -ErrorAction SilentlyContinue
-Copy-Item jsonl ..\goofish-backup\ -Recurse -Force -ErrorAction SilentlyContinue
-Copy-Item price_history ..\goofish-backup\ -Recurse -Force -ErrorAction SilentlyContinue
-Copy-Item config.json ..\goofish-backup\ -Force -ErrorAction SilentlyContinue
-```
-
-### 3. 切换到修复版仓库
-
-```powershell
-git remote remove origin
-git remote add origin https://github.com/Hygge8/ai-goofish-smart-monitor.git
-git fetch origin main
-git reset --hard origin/main
-```
-
-### 4. 恢复本地数据
-
-```powershell
-Copy-Item ..\goofish-backup\.env . -Force -ErrorAction SilentlyContinue
-Copy-Item ..\goofish-backup\data . -Recurse -Force -ErrorAction SilentlyContinue
-Copy-Item ..\goofish-backup\state . -Recurse -Force -ErrorAction SilentlyContinue
-Copy-Item ..\goofish-backup\prompts . -Recurse -Force -ErrorAction SilentlyContinue
-Copy-Item ..\goofish-backup\logs . -Recurse -Force -ErrorAction SilentlyContinue
-Copy-Item ..\goofish-backup\images . -Recurse -Force -ErrorAction SilentlyContinue
-Copy-Item ..\goofish-backup\jsonl . -Recurse -Force -ErrorAction SilentlyContinue
-Copy-Item ..\goofish-backup\price_history . -Recurse -Force -ErrorAction SilentlyContinue
-Copy-Item ..\goofish-backup\config.json . -Force -ErrorAction SilentlyContinue
-```
-
-### 5. 启动
-
-```powershell
 docker compose up -d --build
 docker compose logs -f app
 ```
@@ -172,9 +248,9 @@ git pull origin main
 docker compose up -d --build
 ```
 
-Windows PowerShell：
+Windows CMD / PowerShell：
 
-```powershell
+```cmd
 git pull origin main
 docker compose up -d --build
 ```
