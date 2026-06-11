@@ -42,7 +42,8 @@ RUN apt-get update \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-COPY --from=frontend-builder /web-ui/dist /app/dist
+# web-ui/vite.config.ts 将构建产物输出到仓库根目录 /dist
+COPY --from=frontend-builder /dist /app/dist
 
 COPY src /app/src
 COPY spider_v2.py /app/spider_v2.py
