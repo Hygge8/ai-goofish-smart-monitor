@@ -99,7 +99,26 @@ class ItemAnalysisDispatcher:
 
     def _build_keyword_result(self, job: ItemAnalysisJob, record: dict) -> dict:
         search_text = build_search_text(record)
-        return evaluate_keyword_rules(list(job.keyword_rules), search_text)
+        configured_rules = [rule for rule in (job.keyword_rules or ()) if str(rule).strip()]
+        result = evaluate_keyword_rules(configured_rules, search_text)
+        if result.get("is_recommended"):
+            return result
+
+        # 关键词模式用于快速验证链路时，很多用户只填写“搜索关键词”，容易忘记维护
+        # “关键词规则”。这里用搜索关键词做一次兜底匹配：标题/详情中包含搜索词时也推荐。
+        # 如果用户需要更严格筛选，可以继续在关键词规则中填写更精确的型号、成色或地区词。
+        search_keyword = str(job.keyword or "").strip()
+        if search_keyword:
+            fallback_result = evaluate_keyword_rules([search_keyword], search_text)
+            if fallback_result.get("is_recommended"):
+                fallback_result["reason"] = (
+                    f"命中搜索关键词兜底规则：{search_keyword}。"
+                    "如需更严格筛选，请在关键词规则中填写精确条件。"
+                )
+                fallback_result["fallback_keyword"] = search_keyword
+                return fallback_result
+
+        return result
 
     def _build_skip_ai_result(self) -> dict:
         return {
