@@ -7,7 +7,6 @@ import os
 import json
 import base64
 from typing import Dict, List, Optional
-from datetime import datetime
 from dotenv import load_dotenv
 from openai import AsyncOpenAI
 from src.ai_message_builder import (
@@ -41,8 +40,6 @@ def _sanitize_no_proxy_env() -> None:
     CIDR mask (e.g. ``[::1/128]``), which the URL parser rejects as an invalid
     port.  Stripping the ``/prefix`` part is safe because httpx doesn't
     support CIDR range matching anyway — it only does exact-host comparison.
-
-    See https://github.com/encode/httpx/pull/3741
     """
     for key in ("NO_PROXY", "no_proxy"):
         value = os.environ.get(key)
@@ -64,6 +61,21 @@ def _sanitize_no_proxy_env() -> None:
             cleaned.append(part)
         if changed:
             os.environ[key] = ",".join(cleaned)
+
+
+def _is_image_payload_unsupported_error(exc: Exception) -> bool:
+    """判断当前模型/接口是否不支持 OpenAI 多模态 image_url 消息。"""
+    text = str(exc).lower()
+    return (
+        "image_url" in text
+        and (
+            "unknown variant" in text
+            or "expected `text`" in text
+            or "expected text" in text
+            or "invalid_request" in text
+            or "failed to deserialize" in text
+        )
+    )
 
 
 class AIClient:
@@ -140,14 +152,6 @@ class AIClient:
     ) -> Optional[Dict]:
         """
         分析商品数据
-
-        Args:
-            product_data: 商品数据
-            image_paths: 图片路径列表
-            prompt_text: 分析提示词
-
-        Returns:
-            分析结果
         """
         if not self.is_available():
             print("AI 客户端不可用")
@@ -158,6 +162,18 @@ class AIClient:
             response = await self._call_ai(messages)
             return self._parse_response(response)
         except Exception as e:
+            if image_paths and _is_image_payload_unsupported_error(e):
+                print(
+                    "当前 AI 模型/接口不支持 image_url 多模态消息，"
+                    "已自动降级为纯文本分析并重试。"
+                )
+                try:
+                    messages = self._build_messages(product_data, [], prompt_text)
+                    response = await self._call_ai(messages)
+                    return self._parse_response(response)
+                except Exception as retry_error:
+                    print(f"AI 纯文本重试仍失败: {retry_error}")
+                    return None
             print(f"AI 分析失败: {e}")
             return None
 
