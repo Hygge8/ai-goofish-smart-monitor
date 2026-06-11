@@ -7,6 +7,78 @@ import aiofiles
 
 from src.infrastructure.external.ai_client import AIClient
 
+# 默认参考模板：当 prompts/macbook_criteria.txt 不存在时自动创建，避免首次部署创建 AI 任务失败。
+DEFAULT_REFERENCE_CRITERIA_TEXT = """
+# 闲鱼商品 AI 分析标准参考模板
+
+[V6.3 核心升级] 你是一个二手商品筛选助手，目标是在闲鱼商品中筛出值得进一步联系的优质商品，并过滤风险较高、信息不足或疑似套路的商品。
+
+## 一、总体判断原则
+
+1. 优先推荐：真实个人卖家、描述完整、图片清晰、价格合理、支持平台交易、沟通风险低的商品。
+2. 谨慎推荐：价格略低但信息不足、图片较少、卖家描述含糊、发布时间过久或存在轻微疑点的商品。
+3. 不推荐：明显商家批量号、引流到站外、价格异常低、要求微信/QQ/支付宝/线下交易、描述与图片不符、疑似翻新/维修/问题商品。
+
+## 二、一票否决硬性原则
+
+只要命中以下任一情况，直接判定为不推荐：
+
+- 要求脱离平台交易，例如加微信、QQ、支付宝、银行卡、线下交易。
+- 标题或描述中出现明显骗局、引流、代拍、定金、到付、先款等高风险信息。
+- 商品价格显著低于正常市场价，且没有合理解释。
+- 卖家描述刻意回避关键问题，例如成色、维修、故障、来源、配件。
+- 图片疑似网图、盗图、过度美化，或图片与标题描述明显不一致。
+- 商品存在明确故障、锁机、账号锁、进水、维修严重、无法正常使用等情况。
+
+## 三、重点分析维度
+
+### 1. 商品真实性
+
+- 图片是否为实拍。
+- 图片数量是否足够。
+- 标题、描述、图片是否一致。
+- 是否展示关键细节，例如外观、配件、型号、使用痕迹。
+
+### 2. 价格合理性
+
+- 与同类商品市场价格相比是否合理。
+- 价格过低时必须提高风险判断。
+- 价格合理且描述完整，可提高推荐倾向。
+
+### 3. 卖家可信度
+
+- 是否像个人闲置卖家。
+- 是否存在大量同类商品、批量售卖、回收、商家话术。
+- 是否愿意平台内沟通与交易。
+
+### 4. 描述完整度
+
+- 是否说明购买时间、使用情况、成色、配件、维修记录、出售原因。
+- 描述越完整，可信度越高。
+- 描述过短、只写“懂的来”“不议价”“捡漏”等，需要谨慎。
+
+## 四、危险信号清单
+
+出现以下内容时应降低推荐：
+
+- “秒出”“捡漏”“急出”“不刀”“到付”“定金”“先款”。
+- “微信详聊”“QQ 联系”“支付宝转账”“线下交易”。
+- “维修过”“进水”“换过主板”“账号锁”“密码忘了”。
+- 图片极少、模糊、无实物图、只有官网图或宣传图。
+- 卖家同一账号发布大量相似商品。
+
+## 五、输出要求
+
+请根据商品信息给出清晰判断，输出内容需要包含：
+
+- 是否推荐。
+- 推荐或不推荐的核心理由。
+- 主要风险点。
+- 可以继续询问卖家的问题。
+
+判断要简洁、直接、可解释，不要只给空泛结论。
+""".strip()
+
 # The meta-prompt to instruct the AI
 META_PROMPT_TEMPLATE = """
 你是一位世界级的AI提示词工程大师。你的任务是根据用户提供的【购买需求】，模仿一个【参考范例】，为闲鱼监控机器人的AI分析模块（代号 EagleEye）生成一份全新的【分析标准】文本。
@@ -45,12 +117,26 @@ async def _report_progress(
         await progress_callback(step_key, message)
 
 
+def _ensure_default_reference_file(reference_file_path: str) -> str:
+    """首次部署时自动生成默认参考模板。"""
+    directory = os.path.dirname(reference_file_path)
+    if directory:
+        os.makedirs(directory, exist_ok=True)
+    with open(reference_file_path, "w", encoding="utf-8") as file:
+        file.write(DEFAULT_REFERENCE_CRITERIA_TEXT)
+    return DEFAULT_REFERENCE_CRITERIA_TEXT
+
+
 def _read_reference_text(reference_file_path: str) -> str:
     try:
         with open(reference_file_path, "r", encoding="utf-8") as file:
-            return file.read()
+            content = file.read().strip()
+            if content:
+                return content
+            return _ensure_default_reference_file(reference_file_path)
     except FileNotFoundError:
-        raise FileNotFoundError(f"参考文件未找到: {reference_file_path}")
+        print(f"参考文件不存在，已自动创建默认模板: {reference_file_path}")
+        return _ensure_default_reference_file(reference_file_path)
     except IOError as exc:
         raise IOError(f"读取参考文件失败: {exc}")
 
