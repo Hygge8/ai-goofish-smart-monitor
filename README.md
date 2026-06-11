@@ -27,13 +27,23 @@
 
 ## 🐳 Docker 部署（推荐）
 
-> 注意：请使用本仓库地址，不要再拉 `Usagi-org/ai-goofish-monitor`。本仓库包含钉钉 ActionCard、按钮化链接、项目名等自定义改动。
+> 本项目基于 `Usagi-org/ai-goofish-monitor` 二次开发。部署本版本时，请使用下面的当前仓库地址，这样才能包含钉钉 ActionCard、按钮化链接、商品图片卡片和项目名等定制改动。
 
 ```bash
 git clone https://github.com/Hygge8/ai-goofish-smart-monitor.git
 cd ai-goofish-smart-monitor
 cp .env.example .env
 vim .env # 填写 AI、Web 登录、钉钉等配置项
+docker compose up -d --build
+docker compose logs -f app
+```
+
+Windows CMD：
+
+```cmd
+git clone https://github.com/Hygge8/ai-goofish-smart-monitor.git
+cd ai-goofish-smart-monitor
+copy .env.example .env
 docker compose up -d --build
 docker compose logs -f app
 ```
