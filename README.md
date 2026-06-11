@@ -124,8 +124,8 @@ powershell -ExecutionPolicy Bypass -File .\scripts\restore-runtime.ps1 -BackupDi
 
 迁移和备份文档：
 
-- 如果你**之前部署的是上游 `Usagi-org/ai-goofish-monitor`，现在要切换到本仓库版本**，请看：`docs/SWITCH_FROM_UPSTREAM.md`
-- 如果你**已经在使用本仓库，只是日常更新、备份、恢复本地配置和任务数据**，请看：`docs/LOCAL_DATA_BACKUP.md`
+- 如果你**之前部署的是上游 `Usagi-org/ai-goofish-monitor`，现在要切换到本仓库版本**，请看：[从上游 Usagi 版本切换到修复版](docs/SWITCH_FROM_UPSTREAM.md)
+- 如果你**已经在使用本仓库，只是日常更新、备份、恢复本地配置和任务数据**，请看：[本地配置与数据保存说明](docs/LOCAL_DATA_BACKUP.md)
 
 ## 数据存储与迁移
 
