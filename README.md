@@ -24,11 +24,10 @@
 ![监控概览](static/img.png)
 ![任务管理](static/img_1.png)
 ![结果查看](static/img_2.png)
-![通知推送](static/img_3.png)
 
 ### 钉钉移动端推送效果
 
-![钉钉移动端推送效果](docs/images/dingtalk-mobile-card.svg)
+![钉钉移动端推送效果](docs/images/dingtalk-actioncard-preview.svg)
 
 ## 🐳 Docker 部署（推荐）
 
